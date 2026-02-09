@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#f6f8ff" />
+
+  <title>FSA · Simulador 2026 (Mar–Nov)</title>
+  <meta name="description" content="Simulador de presupuesto 2026 (Mar–Nov) para estimar horas semanales por centro, docentes estimados y comparar escenarios." />
+
+  <!-- Open Graph (básico, por si comparten link) -->
+  <meta property="og:title" content="FSA · Simulador 2026 (Mar–Nov)" />
+  <meta property="og:description" content="Estimador de horas por centro, docentes y escenarios de presupuesto (Mar–Nov 2026)." />
+  <meta property="og:type" content="website" />
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="print.css" media="print" />
+
+  <!-- ⭐ Detallitos: Panel Admin oculto -->
+  <style>
+    /* PANEL ADMIN OCULTO */
+    #adminPanel{
+      margin-top:16px;
+      padding:14px;
+      border-radius:14px;
+      background:rgba(12,65,196,.06);
+      border:1px dashed rgba(12,65,196,.25);
+      display:none;
+    }
+
+    body.admin-mode #adminPanel{
+      display:block;
+    }
+
+    #adminPanel pre{
+      margin:0;
+      font-size:12px;
+      overflow:auto;
+      max-height:340px;
+    }
+
+    @media print{
+      #adminPanel{ display:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Saltar a contenido</a>
+
+  <noscript>
+    <div class="card" style="max-width:1180px;margin:16px auto;padding:16px;">
+      <h2 style="margin:0 0 8px;">JavaScript está desactivado</h2>
+      <p class="muted" style="margin:0;">
+        Este simulador necesita JavaScript para calcular horas, docentes y escenarios.
+      </p>
+    </div>
+  </noscript>
+
+  <header class="topbar" role="banner">
+    <div class="brand" aria-label="Marca y título">
+      <div class="brand-mark" aria-hidden="true">FSA</div>
+      <div class="brand-text">
+        <h1>Simulador 2026</h1>
+        <p>Planeación estimada · Operación Marzo–Noviembre (9 meses)</p>
+      </div>
+    </div>
+
+    <nav class="top-actions" aria-label="Acciones principales">
+      <!-- Tabs/Vistas -->
+      <button id="btnViewQuote" class="btn btn-ghost" type="button" aria-controls="viewQuote" aria-current="page">
+        Cotizador
+      </button>
+      <button id="btnViewSchedule" class="btn btn-ghost" type="button" aria-controls="viewSchedule">
+        Horario estimado
+      </button>
+
+      <span class="top-sep" aria-hidden="true"></span>
+
+      <!-- Acciones -->
+      <button id="btnAddCenter" class="btn btn-ghost" type="button">
+        + Agregar centro
+      </button>
+      <button id="btnSaveScenario" class="btn btn-primary" type="button">
+        Guardar escenario
+      </button>
+      <button id="btnScenarios" class="btn btn-ghost" type="button" aria-haspopup="dialog" aria-controls="dlgScenarios">
+        Escenarios
+      </button>
+      <button id="btnPrint" class="btn btn-ghost" type="button">
+        Imprimir / PDF
+      </button>
+    </nav>
+  </header>
+
+  <main id="main" class="wrap" role="main">
+    <!-- =========================
+         COTIZADOR
+    ========================= -->
+    <section id="viewQuote" class="card" data-view="quote" aria-labelledby="quoteTitle">
+      <div class="card-head">
+        <div>
+          <h2 id="quoteTitle">Centros</h2>
+          <p class="muted">
+            Elige horas semanales por centro. No se eligen horarios (eso lo organiza Musicala).
+          </p>
+        </div>
+      </div>
+
+      <!-- Contenedor dinámico -->
+      <div id="centersList" class="centers" aria-live="polite"></div>
+
+      <div class="hint" role="note">
+        <strong>Regla:</strong> las horas se manejan en bloques de <strong>4</strong> (1 jornada visible).
+      </div>
+    </section>
+
+    <!-- =========================
+         RESUMEN FINANCIERO
+    ========================= -->
+    <aside id="summaryCard" class="summary card" aria-labelledby="summaryTitle">
+      <div class="card-head">
+        <div>
+          <h2 id="summaryTitle">Resumen</h2>
+          <p class="muted">
+            Valores estimados incluyendo costos operativos, margen y retenciones.
+          </p>
+        </div>
+      </div>
+
+      <!-- Estado vacío -->
+      <div id="emptyState" class="hint" style="display:none;" role="status" aria-live="polite">
+        Ajusta las horas por centro para ver el estimado en tiempo real.
+      </div>
+
+      <div class="kpis" aria-label="Indicadores clave">
+        <!-- HORAS -->
+        <div class="kpi">
+          <div class="kpi-label">Horas totales (semana)</div>
+          <div class="kpi-value" id="kpiHours">—</div>
+        </div>
+
+        <!-- KPI NUEVO -->
+        <div class="kpi">
+          <div>
+            <div class="kpi-label">Horas reales docentes (contrato)</div>
+            <div class="muted" style="font-size:12px;margin-top:4px;">
+              Incluye preparación, traslados y gestión académica
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiContractHours">—</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Jornadas (4h) por semana</div>
+          <div class="kpi-value" id="kpiJornadas">—</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Docentes estimados</div>
+          <div class="kpi-value" id="kpiTeachers">—</div>
+        </div>
+
+        <div class="divider" aria-hidden="true"></div>
+
+        <div class="kpi big">
+          <div class="kpi-label">Valor mensual estimado</div>
+          <div class="kpi-value money" id="kpiMonthly">—</div>
+        </div>
+
+        <div class="kpi big">
+          <div class="kpi-label">Total 2026 (Mar–Nov)</div>
+          <div class="kpi-value money" id="kpiTotal">—</div>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Nota:</strong> Este valor es un estimado automático para facilitar decisiones.
+        El presupuesto final se confirma tras revisión operativa.
+      </div>
+
+    <!-- ⭐ PANEL ADMIN (OCULTO) -->
+      <details id="adminPanel" class="admin" aria-label="Panel de administración oculto">
+        <summary class="admin__summary">
+          <span class="admin__title">Modo Admin · Desglose interno</span>
+          <span class="admin__meta">Solo con <code>?debug=1</code></span>
+        </summary>
+
+        <!-- Inspector bonito -->
+        <div id="adminPretty" class="admin__pretty" aria-live="polite"></div>
+
+        <!-- Toolbar -->
+        <div class="admin__toolbar">
+          <button id="btnAdminCopy" class="btn btn-ghost small" type="button">Copiar JSON</button>
+          <button id="btnAdminToggle" class="btn btn-ghost small" type="button" aria-expanded="false">
+            Ver JSON crudo
+          </button>
+        </div>
+
+        <!-- Raw JSON (colapsado por defecto) -->
+        <div id="adminRawWrap" class="admin__raw hidden">
+          <pre id="adminDebug" class="admin__code"></pre>
+        </div>
+      </details>
+    </aside>
+
+    <!-- =========================
+         HORARIO ESTIMADO
+    ========================= -->
+    <section id="viewSchedule" class="card" data-view="schedule" hidden aria-labelledby="scheduleTitle">
+      <div class="card-head">
+        <div>
+          <h2 id="scheduleTitle">Horario estimado</h2>
+          <p class="muted">
+            Propuesta automática referencial para visualizar distribución por centro y docentes.
+          </p>
+        </div>
+      </div>
+
+      <!-- warnings / alertas dinámicas -->
+      <div id="scheduleWarnings" role="status" aria-live="polite"></div>
+
+      <div class="hint" role="note">
+        Este horario es una estimación. La asignación real depende de disponibilidad y validación operativa.
+      </div>
+
+      <div class="schedule-layout">
+        <div id="scheduleTable" aria-label="Tabla de horario estimado"></div>
+
+        <div class="schedule-roster" aria-label="Resumen por docente">
+          <h3 style="margin:0 0 10px;">Resumen por docente</h3>
+          <div id="scheduleRoster"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================
+       MODAL ESCENARIOS
+  ========================= -->
+  <dialog id="dlgScenarios" class="dlg" aria-labelledby="dlgTitle">
+    <div class="dlg-head">
+      <h3 id="dlgTitle">Escenarios</h3>
+      <button id="btnCloseDlg" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div class="dlg-body">
+      <div class="row">
+        <label class="field">
+          <span>Nombre del escenario</span>
+          <input id="scenarioName" type="text" placeholder="Ej: Ajuste Betania" autocomplete="off" />
+        </label>
+
+        <button id="btnConfirmSave" class="btn btn-primary" type="button">
+          Guardar
+        </button>
+      </div>
+
+      <div class="dlg-section">
+        <div class="section-head">
+          <h4 style="margin:0;">Guardados</h4>
+          <button id="btnClearAll" class="btn btn-danger" type="button">
+            Borrar todo
+          </button>
+        </div>
+
+        <div id="scenariosList" class="scenarios" aria-live="polite"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast stack (opcional; si no lo usas, no molesta) -->
+  <div class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
