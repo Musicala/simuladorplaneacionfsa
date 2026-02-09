@@ -8,7 +8,7 @@ import { buildEstimatedSchedule, renderEstimatedSchedule } from './schedule.js';
 /* ============================================================================
    app.js — FSA · Simulador 2026 (Mar–Nov)
 
-   Mejoras reales:
+   Mejoras reales (y sin romper lo que ya sirve):
    ✅ computeScenario() UNA sola vez por update (consistencia)
    ✅ DEBUG por URL: ?debug=1
    ✅ update() micro-debounce (requestAnimationFrame)
@@ -19,6 +19,12 @@ import { buildEstimatedSchedule, renderEstimatedSchedule } from './schedule.js';
    ✅ Delegación de eventos sólida + normalización
    ✅ VIEW STATE limpio: document.body.dataset.view = 'quote'|'schedule'
       (para CSS: body[data-view="schedule"] #summaryCard{display:none})
+
+   ✅ ADMIN PRO (nuevo):
+   ✅ Usa res._steps (si existe) para mostrar:
+      - % y montos (error, margen, retención)
+      - subtotales paso a paso
+      - desglose estimado por docentes (contratos + sueltas)
 ============================================================================ */
 
 /* ========================= DEBUG ========================= */
@@ -68,6 +74,15 @@ function clampHours(n){
 }
 function fmt(n){
   return new Intl.NumberFormat('es-CO').format(Math.round(Number(n || 0)));
+}
+function pctFmt01(p01){
+  const v = Number(p01 || 0) * 100;
+  // sin decimales para que no se vea como un Excel triste
+  return `${Math.round(v)}%`;
+}
+function pctFmt100(p100){
+  const v = Number(p100 || 0);
+  return `${Math.round(v)}%`;
 }
 function getTotalWeeklyHours(list = centers){
   return (list || []).reduce((acc, c) => acc + (Number(c?.hours) || 0), 0);
@@ -245,6 +260,212 @@ function renderCenters(){
   }).join('');
 }
 
+/* ========================= ADMIN helpers (pretty) ========================= */
+function adminLine(label, valueHtml, hintHtml=''){
+  return `
+    <div class="admin__kv">
+      <div class="admin__k">
+        ${escapeHtml(label)}
+        ${hintHtml ? `<div class="admin__hint">${hintHtml}</div>` : ``}
+      </div>
+      <div class="admin__v">${valueHtml}</div>
+    </div>
+  `;
+}
+function adminMoney(n){ return escapeHtml(moneyCOP(Number(n || 0))); }
+function adminNum(n){ return escapeHtml(fmt(Number(n || 0))); }
+function adminPct01(p01){ return escapeHtml(pctFmt01(Number(p01 || 0))); }
+function adminPct100(p100){ return escapeHtml(pctFmt100(Number(p100 || 0))); }
+
+function renderAdminPretty(res){
+  const pretty = document.getElementById('adminPretty');
+  if (!pretty) return;
+
+  const internal = res?._internal || {};
+  const steps = res?._steps || null;
+
+  // Fallbacks cuando no existe _steps (por si alguien no actualiza calculator.js)
+  const payrollPct01 = (steps?.fixedPayroll?.pctApplied ?? internal.payrollPct ?? 0);
+  const retentionPct01 = (steps?.retention?.pct ?? internal.retentionPct ?? 0);
+  const errorPct01 = (steps?.error?.pct ?? internal.errorPct ?? 0.01);
+  const marginPct01 = (steps?.margin?.pct ?? internal.marginPct ?? internal.finalMargin ?? 0.06);
+
+  const fixedPayroll = (steps?.fixedPayroll?.amount ?? internal.fixedPayroll ?? 0);
+  const extraFixedMonthly = (steps?.internal?.extraFixedMonthly ?? internal.extraFixedMonthly ?? 0);
+  const supervisionMonthlyAvg = (steps?.supervision?.monthlyAvg ?? internal.supervisionMonthlyAvg ?? 0);
+  const internalMonthly = (steps?.internal?.internalMonthly ?? internal.internalMonthly ?? 0);
+
+  const errorAmount = (steps?.error?.amount ?? internal.errorAmount ?? (Number(internalMonthly||0) * Number(errorPct01||0)));
+  const withError = (steps?.error?.totalWithError ?? internal.withError ?? 0);
+
+  const priceMonthlyRaw = (steps?.margin?.priceMonthlyRaw ?? internal.priceMonthlyRaw ?? 0);
+  const marginAmount = (steps?.margin?.amount ?? internal.marginAmount ?? (Number(priceMonthlyRaw||0) - Number(withError||0)));
+
+  const priceMonthlyAfterRetentionRaw = (steps?.retention?.priceMonthlyAfterRetentionRaw ?? internal.priceMonthlyAfterRetentionRaw ?? 0);
+  const retentionAmountRaw = (steps?.retention?.amountRaw ?? internal.retentionAmountRaw ?? (Number(priceMonthlyAfterRetentionRaw||0) - Number(priceMonthlyRaw||0)));
+
+  const netMonthlyAfterRetentionApprox = (steps?.retention?.netMonthlyAfterRetentionApprox ?? internal.netMonthlyAfterRetentionApprox ?? 0);
+
+  const a = [];
+
+  // 1) Totales operativos
+  a.push(`
+    <div class="admin__card">
+      <h4>Totales</h4>
+      ${adminLine('Horas clase/semana', adminNum(res.weeklyClassHours))}
+      ${adminLine('Horas contrato/semana', adminNum(res.weeklyContractHours), `<span class="muted">Factor aplicado</span>`)}
+      ${adminLine('Jornadas/semana', adminNum(res.jornadasWeek), `<span class="muted">1 jornada visible = 4h clase</span>`)}
+      ${adminLine('Docentes estimados', adminNum(res.teachers))}
+    </div>
+  `);
+
+  // 2) Facturación (lo que ve el cliente)
+  a.push(`
+    <div class="admin__card">
+      <h4>Facturación</h4>
+      ${adminLine('Mensual (cliente)', adminMoney(res.priceMonthly))}
+      ${adminLine('Total periodo', adminMoney(res.totalPeriod))}
+      ${adminLine('Retención %', adminPct01(retentionPct01))}
+      ${adminLine('Mensual neto aprox', adminMoney(netMonthlyAfterRetentionApprox), `<span class="muted">Desde el valor facturado redondeado</span>`)}
+    </div>
+  `);
+
+  // 3) Desglose docentes (estimado)
+  const t = steps?.teachers || null;
+  if (t){
+    const rows = [];
+    const bd = Array.isArray(t.breakdown) ? t.breakdown : [];
+    if (bd.length){
+      for (const b of bd){
+        // contratos tienen contractHours>0, sueltas contractHours=0
+        const label = b.contractHours > 0
+          ? `${b.count} × ${b.contractHours}h/sem`
+          : `${escapeHtml(b.label || 'Horas sueltas')}`;
+
+        const hint = b.contractHours > 0
+          ? `<span class="muted">${escapeHtml(moneyCOP(b.monthlyEach))} c/u</span>`
+          : `<span class="muted">${escapeHtml(moneyCOP(b.monthlyEach))} por hora</span>`;
+
+        rows.push(adminLine(label, adminMoney(b.total), hint));
+      }
+    } else {
+      rows.push(`<div class="hint">No hay breakdown detallado (actualiza calculator.js).</div>`);
+    }
+
+    // Mini roster (Docente 1..N)
+    let rosterHtml = '';
+    const list = Array.isArray(t.teachersList) ? t.teachersList : [];
+    if (list.length){
+      rosterHtml = `
+        <div class="admin__mini">
+          <div class="admin__miniTitle">Docente por docente (estimado)</div>
+          <div class="admin__miniGrid">
+            ${list.map(x => {
+              const kind = x.type === 'loose'
+                ? `Suelta (${Math.round(Number(x.contractHours||0))}h/sem)`
+                : `Contrato ${Math.round(Number(x.contractHours||0))}h/sem`;
+              return `
+                <div class="admin__pill">
+                  <div class="admin__pillK">${escapeHtml(x.label)}</div>
+                  <div class="admin__pillS muted">${escapeHtml(kind)}</div>
+                  <div class="admin__pillV">${escapeHtml(moneyCOP(x.monthly || 0))}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    a.push(`
+      <div class="admin__card">
+        <h4>Docentes (estimado)</h4>
+        ${adminLine('Costo docentes mensual', adminMoney(t.monthlyCost))}
+        <div class="admin__subgrid">
+          <div class="admin__sub">
+            <div class="admin__subTitle">Desglose</div>
+            ${rows.join('')}
+          </div>
+        </div>
+        ${rosterHtml}
+      </div>
+    `);
+  } else {
+    // fallback mínimo con lo que haya
+    const td = res?._teachersDetail || {};
+    a.push(`
+      <div class="admin__card">
+        <h4>Docentes (estimado)</h4>
+        ${adminLine('Costo docentes mensual', adminMoney(td.monthlyCost || 0), `<span class="muted">Sin breakdown (actualiza calculator.js)</span>`)}
+        ${adminLine('Horas sueltas/semana', adminNum(td.looseHours || 0))}
+        ${adminLine('Costo sueltas mensual', adminMoney(td.looseMonthly || 0))}
+      </div>
+    `);
+  }
+
+  // 4) Costos internos
+  a.push(`
+    <div class="admin__card">
+      <h4>Costos internos</h4>
+      ${adminLine('Nómina fija (base)', adminMoney(steps?.fixedPayroll?.baseMonthly ?? internal.fixedPayrollBase ?? 0))}
+      ${adminLine('Porcentaje imputado', adminPct01(payrollPct01))}
+      ${adminLine('Nómina fija imputada', adminMoney(fixedPayroll))}
+      ${adminLine('Fijos extra', adminMoney(extraFixedMonthly))}
+      ${adminLine('Supervisión prom.', adminMoney(supervisionMonthlyAvg))}
+      ${adminLine('Operación mensual (subtotal)', adminMoney(internalMonthly))}
+    </div>
+  `);
+
+  // 5) Pipeline paso por paso (lo que ustedes quieren: % → monto → subtotal)
+  a.push(`
+    <div class="admin__card">
+      <h4>Paso a paso (pipeline)</h4>
+
+      <div class="admin__step">
+        <div class="admin__stepTitle">1) Subtotal interno</div>
+        ${adminLine('Subtotal interno mensual', adminMoney(internalMonthly), `<span class="muted">Docentes + nómina fija imputada + extras + supervisión</span>`)}
+      </div>
+
+      <div class="admin__step">
+        <div class="admin__stepTitle">2) Error / colchón</div>
+        ${adminLine(`Error (${pctFmt01(errorPct01)})`, adminMoney(errorAmount), `<span class="muted">${escapeHtml(moneyCOP(internalMonthly))} × ${escapeHtml(pctFmt01(errorPct01))}</span>`)}
+        ${adminLine('Subtotal + error', adminMoney(withError))}
+      </div>
+
+      <div class="admin__step">
+        <div class="admin__stepTitle">3) Margen</div>
+        ${adminLine(`Margen objetivo (${pctFmt01(marginPct01)})`, adminMoney(marginAmount), `<span class="muted">Equivalente: precio_raw − (subtotal+error)</span>`)}
+        ${adminLine('Precio mensual RAW (sin retención)', adminMoney(priceMonthlyRaw), `<span class="muted">(subtotal+error) ÷ (1 − margen)</span>`)}
+      </div>
+
+      <div class="admin__step">
+        <div class="admin__stepTitle">4) Retención</div>
+        ${adminLine(`Retención (${pctFmt01(retentionPct01)})`, adminMoney(retentionAmountRaw), `<span class="muted">Factura necesaria − precio_raw</span>`)}
+        ${adminLine('Factura RAW + retención', adminMoney(priceMonthlyAfterRetentionRaw), `<span class="muted">precio_raw ÷ (1 − retención)</span>`)}
+        ${adminLine('Factura mensual (redondeada)', adminMoney(res.priceMonthly), `<span class="muted">Redondeo comercial hacia arriba</span>`)}
+        ${adminLine('Neto aprox recibido', adminMoney(netMonthlyAfterRetentionApprox), `<span class="muted">factura_redondeada × (1 − retención)</span>`)}
+      </div>
+    </div>
+  `);
+
+  // 6) Detalle técnico (para comparar con tu UI previa)
+  a.push(`
+    <div class="admin__card">
+      <h4>Detalle técnico</h4>
+      ${adminLine('Error %', adminPct01(errorPct01))}
+      ${adminLine('Error $', adminMoney(errorAmount))}
+      ${adminLine('Subtotal+Error', adminMoney(withError))}
+      ${adminLine('Margen %', adminPct01(marginPct01))}
+      ${adminLine('Margen $ (equivalente)', adminMoney(marginAmount))}
+      ${adminLine('Raw facturación (sin retención)', adminMoney(priceMonthlyRaw))}
+      ${adminLine('Retención %', adminPct01(retentionPct01))}
+      ${adminLine('Raw + retención', adminMoney(priceMonthlyAfterRetentionRaw))}
+    </div>
+  `);
+
+  pretty.innerHTML = a.join('');
+}
+
 function renderSummary(res){
   const totalWeekly = getTotalWeeklyHours();
   if (totalWeekly <= 0){
@@ -281,7 +502,6 @@ function renderSummary(res){
   if (el.kpiTotal) el.kpiTotal.textContent = moneyCOP(res.totalPeriod);
 
   /* ⭐ ADMIN DEBUG PANEL (NO TOCA NADA EXISTENTE) */
-  /* ⭐ ADMIN DEBUG PANEL (NO TOCA NADA EXISTENTE) */
   if (DEBUG){
     const panel = document.getElementById('adminPanel');
     const pretty = document.getElementById('adminPretty');
@@ -297,64 +517,18 @@ function renderSummary(res){
       const payload = { result: res, centers };
       debug.textContent = JSON.stringify(payload, null, 2);
 
-      // 2) Pretty inspector (si existe el contenedor)
+      // 2) Pretty inspector PRO (usa _steps si existe)
       if (pretty){
-        const internal = res?._internal || {};
-        const rowsMoney = new Set([
-          'fixedPayroll','extraFixedMonthly','supervisionMonthlyAvg','internalMonthly',
-          'withError','priceMonthlyRaw','priceMonthlyAfterRetentionRaw','netMonthlyAfterRetentionApprox',
-          'priceMonthly','totalPeriod'
-        ]);
-
-        const fmtMoney = (n) => moneyCOP(Number(n || 0));
-        const fmtNum = (n) => new Intl.NumberFormat('es-CO').format(Math.round(Number(n || 0)));
-
-        function line(k, v, isMoney=false){
-          const val = isMoney ? fmtMoney(v) : fmtNum(v);
-          return `<div class="admin__kv"><div class="admin__k">${escapeHtml(k)}</div><div class="admin__v">${escapeHtml(val)}</div></div>`;
+        try{
+          renderAdminPretty(res);
+        }catch(err){
+          console.error('[adminPretty] Error renderizando', err);
+          pretty.innerHTML = `
+            <div class="hint">
+              <strong>Error renderizando Admin:</strong> ${escapeHtml(err?.message || String(err))}
+            </div>
+          `;
         }
-
-        const a = [];
-        a.push(`
-          <div class="admin__card">
-            <h4>Totales</h4>
-            ${line('Horas clase/semana', res.weeklyClassHours)}
-            ${line('Horas contrato/semana', res.weeklyContractHours)}
-            ${line('Jornadas/semana', res.jornadasWeek)}
-            ${line('Docentes', res.teachers)}
-          </div>
-        `);
-
-        a.push(`
-          <div class="admin__card">
-            <h4>Facturación</h4>
-            ${line('Mensual (cliente)', res.priceMonthly, true)}
-            ${line('Total periodo', res.totalPeriod, true)}
-            ${line('Retención %', (internal.retentionPct || 0) * 100)}
-            ${line('Mensual neto aprox', internal.netMonthlyAfterRetentionApprox, true)}
-          </div>
-        `);
-
-        a.push(`
-          <div class="admin__card">
-            <h4>Costos internos</h4>
-            ${line('Nómina fija imputada', internal.fixedPayroll, true)}
-            ${line('Fijos extra', internal.extraFixedMonthly, true)}
-            ${line('Supervisión prom.', internal.supervisionMonthlyAvg, true)}
-            ${line('Operación mensual', internal.internalMonthly, true)}
-          </div>
-        `);
-
-        a.push(`
-          <div class="admin__card">
-            <h4>Detalle técnico</h4>
-            ${line('Error (1%)', internal.withError, true)}
-            ${line('Raw facturación', internal.priceMonthlyRaw, true)}
-            ${line('Raw + retención', internal.priceMonthlyAfterRetentionRaw, true)}
-          </div>
-        `);
-
-        pretty.innerHTML = a.join('');
       }
 
       // 3) Copy + toggle (una sola vez)
@@ -585,7 +759,7 @@ function saveScenario(){
     centers: safeClone(centers),
     summary: {
       weeklyClassHours: res?.weeklyClassHours ?? 0,
-      weeklyContractHours: res?.weeklyContractHours ?? 0, // ✅ guardamos el dato nuevo
+      weeklyContractHours: res?.weeklyContractHours ?? 0,
       jornadasWeek: res?.jornadasWeek ?? 0,
       teachers: res?.teachers ?? 0,
       priceMonthly: res?.priceMonthly ?? 0,
