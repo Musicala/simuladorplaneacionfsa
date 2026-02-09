@@ -14,36 +14,15 @@
   <meta property="og:description" content="Estimador de horas por centro, docentes y escenarios de presupuesto (Mar–Nov 2026)." />
   <meta property="og:type" content="website" />
 
+  <!-- PWA-ish niceties (sin meterte en líos) -->
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="print.css" media="print" />
 
-  <!-- ⭐ Detallitos: Panel Admin oculto -->
-  <style>
-    /* PANEL ADMIN OCULTO */
-    #adminPanel{
-      margin-top:16px;
-      padding:14px;
-      border-radius:14px;
-      background:rgba(12,65,196,.06);
-      border:1px dashed rgba(12,65,196,.25);
-      display:none;
-    }
-
-    body.admin-mode #adminPanel{
-      display:block;
-    }
-
-    #adminPanel pre{
-      margin:0;
-      font-size:12px;
-      overflow:auto;
-      max-height:340px;
-    }
-
-    @media print{
-      #adminPanel{ display:none !important; }
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 </head>
 
 <body>
@@ -69,12 +48,29 @@
 
     <nav class="top-actions" aria-label="Acciones principales">
       <!-- Tabs/Vistas -->
-      <button id="btnViewQuote" class="btn btn-ghost" type="button" aria-controls="viewQuote" aria-current="page">
-        Cotizador
-      </button>
-      <button id="btnViewSchedule" class="btn btn-ghost" type="button" aria-controls="viewSchedule">
-        Horario estimado
-      </button>
+      <div class="btn-group" role="tablist" aria-label="Vistas">
+        <button
+          id="btnViewQuote"
+          class="btn btn-ghost"
+          type="button"
+          role="tab"
+          aria-controls="viewQuote"
+          aria-selected="true"
+          aria-current="page"
+        >
+          Cotizador
+        </button>
+        <button
+          id="btnViewSchedule"
+          class="btn btn-ghost"
+          type="button"
+          role="tab"
+          aria-controls="viewSchedule"
+          aria-selected="false"
+        >
+          Horario estimado
+        </button>
+      </div>
 
       <span class="top-sep" aria-hidden="true"></span>
 
@@ -85,7 +81,13 @@
       <button id="btnSaveScenario" class="btn btn-primary" type="button">
         Guardar escenario
       </button>
-      <button id="btnScenarios" class="btn btn-ghost" type="button" aria-haspopup="dialog" aria-controls="dlgScenarios">
+      <button
+        id="btnScenarios"
+        class="btn btn-ghost"
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="dlgScenarios"
+      >
         Escenarios
       </button>
       <button id="btnPrint" class="btn btn-ghost" type="button">
@@ -98,7 +100,14 @@
     <!-- =========================
          COTIZADOR
     ========================= -->
-    <section id="viewQuote" class="card" data-view="quote" aria-labelledby="quoteTitle">
+    <section
+      id="viewQuote"
+      class="card"
+      data-view="quote"
+      aria-labelledby="quoteTitle"
+      role="tabpanel"
+      tabindex="-1"
+    >
       <div class="card-head">
         <div>
           <h2 id="quoteTitle">Centros</h2>
@@ -134,14 +143,13 @@
         Ajusta las horas por centro para ver el estimado en tiempo real.
       </div>
 
+      <!-- KPI stack (misma estructura/IDs, solo orden visual sugerido por CSS) -->
       <div class="kpis" aria-label="Indicadores clave">
-        <!-- HORAS -->
         <div class="kpi">
           <div class="kpi-label">Horas totales (semana)</div>
           <div class="kpi-value" id="kpiHours">—</div>
         </div>
 
-        <!-- KPI NUEVO -->
         <div class="kpi">
           <div>
             <div class="kpi-label">Horas reales docentes (contrato)</div>
@@ -179,36 +187,105 @@
         <strong>Nota:</strong> Este valor es un estimado automático para facilitar decisiones.
         El presupuesto final se confirma tras revisión operativa.
       </div>
-
-    <!-- ⭐ PANEL ADMIN (OCULTO) -->
-      <details id="adminPanel" class="admin" aria-label="Panel de administración oculto">
-        <summary class="admin__summary">
-          <span class="admin__title">Modo Admin · Desglose interno</span>
-          <span class="admin__meta">Solo con <code>?debug=1</code></span>
-        </summary>
-
-        <!-- Inspector bonito -->
-        <div id="adminPretty" class="admin__pretty" aria-live="polite"></div>
-
-        <!-- Toolbar -->
-        <div class="admin__toolbar">
-          <button id="btnAdminCopy" class="btn btn-ghost small" type="button">Copiar JSON</button>
-          <button id="btnAdminToggle" class="btn btn-ghost small" type="button" aria-expanded="false">
-            Ver JSON crudo
-          </button>
-        </div>
-
-        <!-- Raw JSON (colapsado por defecto) -->
-        <div id="adminRawWrap" class="admin__raw hidden">
-          <pre id="adminDebug" class="admin__code"></pre>
-        </div>
-      </details>
     </aside>
+
+    <!-- =========================
+         ADMIN (OCULTO) — AHORA FULL WIDTH (OPCIÓN 1 REAL)
+         Se activa con body.admin-mode (app.js)
+         ✅ MOVIDO FUERA DEL ASIDE para no estrangularlo en escritorio.
+         ✅ Mantiene IDs/clases existentes. Solo cambia la ubicación.
+    ========================= -->
+    <details id="adminPanel" class="admin" aria-label="Panel de administración oculto">
+      <summary class="admin__summary">
+        <span class="admin__title">Modo Admin · Desglose interno</span>
+        <span class="admin__meta">Solo con <code>?debug=1</code></span>
+      </summary>
+
+      <!-- Marco del inspector -->
+      <div class="admin__shell" role="region" aria-label="Inspector financiero interno">
+        <!-- Cabecera de inspector (sticky vía CSS) -->
+        <div class="admin__header">
+          <div class="admin__header-left">
+            <div class="admin__kicker">Inspector</div>
+            <div class="admin__headline">Dashboard financiero interno</div>
+            <div class="admin__sub muted">
+              Jerarquía por niveles: totales → breakdown → pipeline/técnico.
+            </div>
+          </div>
+
+          <!-- Toolbar (MISMO IDs, solo envuelto) -->
+          <div class="admin__header-right">
+            <div class="admin__toolbar">
+              <button id="btnAdminCopy" class="btn btn-ghost small" type="button">Copiar JSON</button>
+              <button id="btnAdminToggle" class="btn btn-ghost small" type="button" aria-expanded="false">
+                Ver JSON crudo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layout del inspector -->
+        <div class="admin__layout">
+          <!-- Columna principal: pretty render + pipeline -->
+          <div class="admin__main">
+            <div class="admin__tier" aria-label="Nivel 1: Totales">
+              <div class="admin__tier-head">
+                <div class="admin__tier-title">Nivel 1 · Totales</div>
+                <div class="admin__tier-hint muted">Lectura rápida para decisión.</div>
+              </div>
+
+              <!-- Render dinámico: aquí app.js inyecta el “pretty inspector” -->
+              <div id="adminPretty" class="admin__pretty" aria-live="polite"></div>
+            </div>
+
+            <div class="admin__tier" aria-label="Nivel 3: Pipeline y técnico">
+              <div class="admin__tier-head">
+                <div class="admin__tier-title">Nivel 3 · Pipeline & detalle técnico</div>
+                <div class="admin__tier-hint muted">Paso a paso, validación y trazabilidad.</div>
+              </div>
+
+              <div class="admin__stage">
+                <div class="admin__stage-note muted">
+                  Si el escenario expone <code>_steps</code>, aquí se verá como timeline (CSS).
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna lateral: raw + ayuda -->
+          <aside class="admin__side" aria-label="Herramientas del inspector">
+            <div class="admin__side-card">
+              <div class="admin__side-title">Lectura</div>
+              <div class="admin__side-text muted">
+                Usa el “pretty” para el análisis. El JSON crudo es para auditoría o para pelearte con tu yo del futuro.
+              </div>
+            </div>
+
+            <!-- Raw JSON (colapsado por defecto) -->
+            <div id="adminRawWrap" class="admin__raw hidden">
+              <div class="admin__raw-head">
+                <div class="admin__raw-title">JSON crudo</div>
+                <div class="admin__raw-meta muted">Copiable y sin maquillaje.</div>
+              </div>
+              <pre id="adminDebug" class="admin__code"></pre>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </details>
 
     <!-- =========================
          HORARIO ESTIMADO
     ========================= -->
-    <section id="viewSchedule" class="card" data-view="schedule" hidden aria-labelledby="scheduleTitle">
+    <section
+      id="viewSchedule"
+      class="card"
+      data-view="schedule"
+      hidden
+      aria-labelledby="scheduleTitle"
+      role="tabpanel"
+      tabindex="-1"
+    >
       <div class="card-head">
         <div>
           <h2 id="scheduleTitle">Horario estimado</h2>
