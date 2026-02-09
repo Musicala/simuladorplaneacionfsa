@@ -3,6 +3,7 @@
      Musicala / FSA — LIGHT ONLY (sí, seguimos vivos)
      - Mantiene compatibilidad con tus clases actuales
      - Agrega utilidades, forms, tablas, badges, toast, etc.
+     - Admin PRO (desktop-first): layout full-width + inspector real
   ========================================================================== */
 
   /* =========================
@@ -302,6 +303,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   border-radius: var(--r);
   box-shadow: var(--shadow);
   padding: 16px;
+  min-width: 0; /* critical: prevent grid overflow */
 }
 
 .card.soft{
@@ -314,6 +316,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   align-items:flex-start;
   justify-content:space-between;
   gap: 12px;
+  min-width: 0;
 }
 .card-head h2{
   margin:0;
@@ -360,6 +363,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   padding: 12px;
   box-shadow: 0 10px 20px rgba(11,16,32,.05);
   transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+  min-width: 0;
 }
 .center:hover{
   transform: translateY(-1px);
@@ -377,12 +381,17 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   align-items:flex-start;
   justify-content:space-between;
   gap: 10px;
+  min-width: 0;
 }
 .center h3{
   margin:0;
   font-size: var(--fs-13);
   letter-spacing:.2px;
   line-height: var(--lh-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 .center .meta{
   margin-top: 4px;
@@ -454,7 +463,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   filter:saturate(.85);
 }
 
-/* small buttons used in scenarios */
+/* small buttons */
 .small{
   padding: 8px 10px;
   border-radius: 12px;
@@ -547,6 +556,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   outline: none;
   background: rgba(246,248,255,.90);
   transition: box-shadow var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+  min-width: 0;
 }
 
 .textarea,
@@ -651,6 +661,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   align-items:center;
   justify-content:space-between;
   gap: 10px;
+  min-width: 0;
 }
 .kpi-label{
   color: var(--muted);
@@ -659,6 +670,9 @@ body[data-view="schedule"] #summaryCard{ display:none; }
 .kpi-value{
   font-weight: 900;
   font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  text-align: right;
 }
 .kpi.big .kpi-value{ font-size: var(--fs-18); }
 
@@ -729,6 +743,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   border: 1px solid var(--line);
   background: rgba(246,248,255,.65);
   box-shadow: 0 10px 18px rgba(11,16,32,.05);
+  min-width: 0;
 }
 @media (max-width: 620px){
   .scenario{ flex-direction: column; align-items: stretch; }
@@ -788,7 +803,6 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   margin-top: 12px;
 }
 
-/* Tablas schedule (mantiene compatibilidad con .sched) */
 .sched{
   width:100%;
   border-collapse: separate;
@@ -808,7 +822,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   background: transparent;
 }
 
-/* Separadores verticales suaves (da estructura) */
+/* Separadores verticales suaves */
 .sched thead th:not(:last-child),
 .sched tbody th:not(:last-child),
 .sched tbody td:not(:last-child){
@@ -838,7 +852,6 @@ body[data-view="schedule"] #summaryCard{ display:none; }
 
 .sched-empty{ color: var(--muted); }
 
-/* Teacher grid container (que se sienta “módulo”) */
 .sched-scroll{
   overflow: auto;
   padding: 10px;
@@ -849,7 +862,6 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   scroll-padding: 16px;
 }
 
-/* Tabla docentes: tamaños estables + centrado real */
 .sched-teachers th,
 .sched-teachers td{
   min-width: 132px;
@@ -861,7 +873,6 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   text-align: left;
 }
 
-/* Sticky primera columna (Docente) */
 .sched-teachers thead th:first-child{
   left: 0;
   position: sticky;
@@ -879,26 +890,22 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   font-weight: 950;
 }
 
-/* Celdas: altura consistente */
 .sched-teachers td{
   padding: 8px 8px;
   height: 44px;
 }
 
-/* Vacíos elegantes */
 .sched-teachers td:empty::before{
   content: "—";
   color: rgba(11,16,32,.28);
   font-weight: 900;
 }
 
-/* Última fila sin borde */
 .sched tr:last-child td,
 .sched tr:last-child th{
   border-bottom: none;
 }
 
-/* “Week” wrappers */
 .week-block{ margin-top: 14px; margin-bottom: 10px; }
 .week-title{
   font-weight: 950;
@@ -918,9 +925,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   box-shadow: 0 8px 18px rgba(11,16,32,.10);
 }
 
-/* ==========================================================================
-   Pills (MEGA PRO)
-========================================================================== */
+/* Pills */
 .sched-pill{
   display:inline-flex;
   align-items:center;
@@ -934,38 +939,25 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   line-height: 1;
   transform: translateZ(0);
 }
-
 .sched-pill-strong{ font-weight: 950; letter-spacing: .2px; }
 .sched-pill-dot{ color: var(--muted); }
 
-/* Deja las celdas más “apretadas” para que los pills parezcan bloques */
-.sched-teachers td{ padding: 8px 8px; }
-
-/* Continuidad visual (si el navegador soporta :has) */
 @supports selector(td:has(.sched-pill)){
   .sched-teachers td:has(.sched-pill){ padding: 6px 6px; }
-
-  .sched-teachers td:has(.sched-pill) .sched-pill{
-    border-radius: 12px;
-  }
+  .sched-teachers td:has(.sched-pill) .sched-pill{ border-radius: 12px; }
 
   .sched-teachers td:has(.sched-pill):has(+ td .sched-pill) .sched-pill{
     border-top-right-radius: 6px;
     border-bottom-right-radius: 6px;
     margin-right: -6px;
   }
-
   .sched-teachers td:has(.sched-pill) + td:has(.sched-pill) .sched-pill{
     border-top-left-radius: 6px;
     border-bottom-left-radius: 6px;
     margin-left: -6px;
   }
 }
-@supports not selector(td:has(.sched-pill)){
-  .sched-pill{ border-radius: 999px; }
-}
 
-/* Centros fijos (si más adelante les metes class en render o en HTML) */
 .pill-fixed-acapulco,
 .sched-pill.pill-fixed-acapulco{
   background: linear-gradient(135deg, var(--acapulco-a), var(--acapulco-b));
@@ -978,25 +970,15 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   border-color: rgba(12,65,196,.25);
 }
 
-/* “1j” o parciales se ven más técnicos */
-.sched-pill .sched-pill-dot + span{
-  font-variant-numeric: tabular-nums;
-  color: rgba(11,16,32,.72);
-  font-weight: 800;
-}
-
-/* ==========================================================================
-   Roster (ahora VA ABAJO) — pro y legible
-========================================================================== */
+/* Roster */
 .schedule-roster{
-  margin-top: 6px; /* se pega bonito a la semana */
+  margin-top: 6px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: rgba(255,255,255,.78);
   padding: 12px;
   box-shadow: 0 10px 18px rgba(11,16,32,.05);
 }
-
 .roster-list{
   display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1005,7 +987,6 @@ body[data-view="schedule"] #summaryCard{ display:none; }
 @media (max-width: 720px){
   .roster-list{ grid-template-columns: 1fr; }
 }
-
 .roster-item{
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -1014,9 +995,8 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   padding: 12px;
   position: relative;
   overflow:hidden;
+  min-width: 0;
 }
-
-/* acento elegante a la izquierda */
 .roster-item::before{
   content:"";
   position:absolute;
@@ -1024,27 +1004,27 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   width: 4px;
   background: linear-gradient(180deg, rgba(12,65,196,.55), rgba(104,13,191,.45), rgba(206,0,113,.35));
 }
-
 .roster-top{
   display:flex;
   align-items:baseline;
   justify-content:space-between;
   gap: 10px;
   padding-left: 4px;
+  min-width: 0;
 }
-
 .roster-top strong{
   font-weight: 950;
   letter-spacing: .2px;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
 .roster-meta{
   color: var(--muted);
   font-size: var(--fs-12);
   font-weight: 800;
   white-space: nowrap;
 }
-
 .roster-centers{
   margin-top: 10px;
   display:flex;
@@ -1054,7 +1034,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
 }
 
 /* ==========================================================================
-   Toast (simple, si lo quieres usar después)
+   Toast (simple)
 ========================================================================== */
 .toast-stack{
   position: fixed;
@@ -1103,7 +1083,7 @@ body[data-view="schedule"] #summaryCard{ display:none; }
 }
 
 /* ==========================================================================
-   Print friendly (por si usan “Imprimir/PDF”)
+   Print friendly
 ========================================================================== */
 @media print{
   body{ background: #fff !important; }
@@ -1115,19 +1095,24 @@ body[data-view="schedule"] #summaryCard{ display:none; }
   .sched-teachers thead th:first-child,
   .sched-teachers tbody th{ position: static; }
   .toast-stack{ display:none !important; }
+  details.admin{ display:none !important; }
 }
 
 /* ==========================================================================
-   Admin panel (DEBUG) — inspector pro
+   Admin panel (DEBUG) — inspector PRO (desktop-first)
    Se activa con body.admin-mode (app.js)
+   ✅ FULL WIDTH en grid
+   ✅ Layout real (main + side)
 ========================================================================== */
 details.admin{
   margin-top: 16px;
   border-radius: 16px;
   border: 1px dashed rgba(12,65,196,.25);
   background: rgba(12,65,196,.05);
-  overflow: hidden;
+  overflow: clip;
   display: none;
+  grid-column: 1 / -1; /* full width within .wrap grid */
+  min-width: 0;
 }
 body.admin-mode details.admin{ display: block; }
 
@@ -1155,56 +1140,330 @@ body.admin-mode details.admin{ display: block; }
   white-space: nowrap;
 }
 
-.admin__pretty{
-  padding: 12px 14px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-@media (max-width: 720px){
-  .admin__pretty{ grid-template-columns: 1fr; }
+/* Shell */
+.admin__shell{
+  padding: 0;
+  min-width: 0;
 }
 
-.admin__card{
+/* Sticky header INSIDE admin */
+.admin__header{
+  position: sticky;
+  top: 64px; /* below topbar */
+  z-index: 2;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(11,16,32,.08);
+  background: rgba(246,248,255,.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+@media (max-width: 980px){
+  .admin__header{ top: 0; position: relative; }
+}
+
+.admin__kicker{
+  font-size: var(--fs-11);
+  color: rgba(11,16,32,.58);
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.admin__headline{
+  font-size: var(--fs-15);
+  font-weight: 950;
+  letter-spacing: .2px;
+  margin-top: 2px;
+}
+.admin__sub{
+  font-size: var(--fs-12);
+  margin-top: 4px;
+}
+
+.admin__toolbar{
+  display:flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content:flex-end;
+}
+
+/* Layout: desktop = 2 cols; mobile = 1 col */
+.admin__layout{
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 12px;
+  padding: 12px 14px 14px;
+  min-width: 0;
+}
+@media (max-width: 980px){
+  .admin__layout{ grid-template-columns: 1fr; }
+}
+
+/* Main/side */
+.admin__main,
+.admin__side{
+  min-width: 0;
+}
+
+/* Side card */
+.admin__side-card{
   background: rgba(255,255,255,.72);
   border: 1px solid rgba(11,16,32,.08);
   border-radius: 14px;
   padding: 10px 12px;
   box-shadow: 0 10px 18px rgba(11,16,32,.04);
 }
-.admin__card h4{
-  margin: 0 0 6px;
-  font-size: var(--fs-12);
-  color: rgba(11,16,32,.75);
+.admin__side-title{
+  font-weight: 950;
+  font-size: var(--fs-13);
+  margin-bottom: 6px;
 }
-.admin__kv{
+.admin__side-text{
+  font-size: var(--fs-12);
+  line-height: 1.45;
+}
+
+/* Tier blocks */
+.admin__tier{
+  background: rgba(255,255,255,.55);
+  border: 1px solid rgba(11,16,32,.08);
+  border-radius: 16px;
+  padding: 10px 10px;
+  box-shadow: 0 12px 26px rgba(11,16,32,.05);
+  min-width: 0;
+}
+.admin__tier + .admin__tier{ margin-top: 12px; }
+
+.admin__tier-head{
   display:flex;
   align-items:baseline;
   justify-content:space-between;
   gap: 10px;
-  padding: 6px 0;
+  padding: 2px 4px 10px;
+  border-bottom: 1px solid rgba(11,16,32,.06);
+  margin-bottom: 10px;
+}
+.admin__tier-title{
+  font-weight: 950;
+  font-size: var(--fs-13);
+}
+.admin__tier-hint{
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+/* Pretty grid: auto-fit so it doesn’t crush in desktop */
+.admin__pretty{
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Rendered cards from app.js */
+.admin__card{
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(11,16,32,.08);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 18px rgba(11,16,32,.04);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+.admin__card::before{
+  content:"";
+  position:absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, rgba(12,65,196,.55), rgba(104,13,191,.45), rgba(206,0,113,.35));
+  opacity: .7;
+}
+
+.admin__card h4{
+  margin: 0 0 8px;
+  font-size: var(--fs-12);
+  color: rgba(11,16,32,.75);
+  padding-left: 6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+}
+.admin__card h4::after{
+  content:"";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(11,16,32,.10), transparent 70%);
+  margin-left: 10px;
+  border-radius: 999px;
+}
+
+/* KV rows */
+.admin__kv{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 8px 0;
   border-top: 1px solid rgba(11,16,32,.06);
+  min-width: 0;
 }
 .admin__kv:first-of-type{ border-top: 0; }
+
 .admin__k{
   color: var(--muted);
   font-size: var(--fs-12);
+  max-width: 70%;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 .admin__v{
-  font-weight: 900;
+  font-weight: 950;
   font-size: var(--fs-13);
   text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  min-width: 120px;
 }
 
-.admin__toolbar{
-  padding: 0 14px 12px;
+/* Subgrids */
+.admin__subgrid{
+  margin-top: 10px;
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.admin__sub{
+  border: 1px solid rgba(11,16,32,.08);
+  background: rgba(255,255,255,.52);
+  border-radius: 14px;
+  padding: 10px 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+}
+.admin__subTitle{
+  font-size: var(--fs-12);
+  font-weight: 950;
+  color: rgba(11,16,32,.70);
+  margin: 0 0 8px;
   display:flex;
+  align-items:center;
   gap: 8px;
-  flex-wrap: wrap;
+}
+.admin__subTitle::before{
+  content:"";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(12,65,196,.38);
 }
 
-.admin__raw{
-  padding: 0 14px 14px;
+/* Steps (pipeline) as timeline */
+.admin__step{
+  margin-top: 10px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(11,16,32,.08);
+  background: rgba(255,255,255,.60);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+  position: relative;
+  border-left: 2px solid rgba(11,16,32,.10);
+}
+.admin__step::before{
+  content:"";
+  position:absolute;
+  left: -6px;
+  top: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(12,65,196,.70), rgba(104,13,191,.50), rgba(206,0,113,.40));
+  box-shadow: 0 10px 18px rgba(11,16,32,.12);
+}
+.admin__stepTitle{
+  font-size: var(--fs-12);
+  font-weight: 950;
+  color: rgba(11,16,32,.78);
+  margin: 0 0 6px;
+}
+
+/* Stage hint slot from HTML */
+.admin__stage-note{
+  font-size: var(--fs-12);
+  margin: 0;
+}
+
+/* Mini roster (Docente por docente) FIXED for desktop */
+.admin__mini{
+  margin-top: 12px;
+  border: 1px solid rgba(11,16,32,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.55);
+  padding: 10px 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+  min-width: 0;
+}
+.admin__miniTitle{
+  font-size: var(--fs-12);
+  font-weight: 950;
+  color: rgba(11,16,32,.72);
+  margin: 0 0 10px;
+}
+.admin__miniGrid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.admin__pill{
+  border: 1px solid rgba(11,16,32,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.70);
+  padding: 10px 10px;
+  box-shadow: 0 10px 18px rgba(11,16,32,.04);
+  min-width: 0;
+}
+.admin__pillK{
+  font-weight: 950;
+  font-size: var(--fs-12);
+  color: rgba(11,16,32,.85);
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin__pillS{
+  margin-top: 2px;
+  font-size: var(--fs-11);
+  color: rgba(11,16,32,.58);
+}
+.admin__pillV{
+  margin-top: 8px;
+  font-weight: 950;
+  font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Raw JSON wrap */
+#adminRawWrap.admin__raw{
+  margin-top: 12px;
+}
+.admin__raw-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.admin__raw-title{
+  font-weight: 950;
+  font-size: var(--fs-13);
+}
+.admin__raw-meta{
+  font-size: var(--fs-12);
+  white-space: nowrap;
 }
 
 .admin__code{
@@ -1222,7 +1481,11 @@ body.admin-mode details.admin{ display: block; }
   white-space: pre;
 }
 
-/* Print: no admin */
-@media print{
-  details.admin{ display:none !important; }
+/* Open state polish */
+details.admin[open]{
+  border-color: rgba(12,65,196,.32);
+  background: rgba(12,65,196,.06);
+}
+details.admin[open] .admin__summary{
+  background: rgba(255,255,255,.70);
 }
